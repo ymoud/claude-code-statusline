@@ -21,9 +21,42 @@ Percentages are green below 50%, yellow from 50% and red from 80%.
 ## Requirements
 
 - [Node.js](https://nodejs.org/) on your `PATH`.
+- [Git](https://git-scm.com/), if you install by cloning.
 - Claude Code. Tested on version 2.1.296 on Windows 11.
 
 ## Install
+
+Either way, the bar appears on its next refresh, without a restart. The `~` in the `command` works on Windows too.
+
+### Option 1: clone the repo (recommended)
+
+Claude Code runs the script straight from your clone, so a `git pull` is all it takes to get updates.
+
+1. Clone the repo. This command works in bash, zsh and PowerShell:
+
+   ```sh
+   git clone https://github.com/ymoud/claude-code-statusline.git $HOME/claude-code-statusline
+   ```
+
+2. Add this block to `~/.claude/settings.json`, next to your existing settings:
+
+   ```json
+   "statusLine": {
+     "type": "command",
+     "command": "node ~/claude-code-statusline/statusline.js",
+     "padding": 0
+   }
+   ```
+
+   If you cloned somewhere else, put that path in `command`. On Windows, write it with forward slashes, e.g. `node C:/dev/claude-code-statusline/statusline.js`.
+
+To update, pull the latest version. The bar uses it from its next refresh:
+
+```sh
+git -C $HOME/claude-code-statusline pull
+```
+
+### Option 2: download the single file
 
 1. Download `statusline.js` into your Claude Code folder.
 
@@ -39,23 +72,27 @@ Percentages are green below 50%, yellow from 50% and red from 80%.
    Invoke-WebRequest https://raw.githubusercontent.com/ymoud/claude-code-statusline/main/statusline.js -OutFile "$HOME\.claude\statusline.js"
    ```
 
-2. Add this block to `~/.claude/settings.json`, next to your existing settings:
+2. Add the block from option 1 to `~/.claude/settings.json`, with this command instead:
 
    ```json
-   "statusLine": {
-     "type": "command",
-     "command": "node ~/.claude/statusline.js",
-     "padding": 0
-   }
+   "command": "node ~/.claude/statusline.js",
    ```
 
-   The same command works on Windows. The bar appears on the next refresh, without a restart.
+To update, download the file again.
 
-If the bar stays empty, run `echo {} | node $HOME/.claude/statusline.js` in a terminal (bash, zsh or PowerShell). It should print a short line with the current folder. An error there means Node.js is missing or the file is not where the command points.
+### If the bar stays empty
+
+Run the script in a terminal (bash, zsh or PowerShell), with the path you used:
+
+```sh
+echo {} | node $HOME/claude-code-statusline/statusline.js
+```
+
+It should print a short line with the current folder. An error there means Node.js is missing or the file is not where the command points.
 
 ## Customize
 
-The colors and the 50% / 80% thresholds sit at the top of `statusline.js`, and each part of the line has its own small function.
+The colors and the 50% / 80% thresholds sit at the top of `statusline.js`, and each part of the line has its own small function. If you cloned the repo, your own edits can conflict with the next `git pull`. Fork it instead if you want to keep a version of your own.
 
 ## License
 
