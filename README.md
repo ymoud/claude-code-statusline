@@ -7,6 +7,8 @@ my-app/web/…/components ⎇ main │ Opus 5.5 · high
 ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ limits 5h 16% · 7d 28%
 ```
 
+On a terminal wide enough to show everything, the two rows join into one.
+
 ## What it shows
 
 | Part | Meaning |
@@ -45,11 +47,14 @@ Claude Code runs the script straight from your clone, so a `git pull` is all it 
    "statusLine": {
      "type": "command",
      "command": "node ~/claude-code-statusline/statusline.js",
-     "padding": 0
+     "padding": 0,
+     "refreshInterval": 2
    }
    ```
 
    If you cloned somewhere else, put that path in `command`. On Windows, write it with forward slashes, e.g. `node C:/dev/claude-code-statusline/statusline.js`.
+
+   Claude Code does not re-run the script when you resize the terminal. `refreshInterval` re-runs it every 2 seconds, so the line switches between one and two rows shortly after a resize. Without it, the switch waits for the next reply from Claude.
 
 To update, pull the latest version. The bar uses it from its next refresh:
 
@@ -89,7 +94,7 @@ Run the script in a terminal (bash, zsh or PowerShell), with the path you used:
 echo {} | node $HOME/claude-code-statusline/statusline.js
 ```
 
-It should print two short rows, the first with the current folder. An error there means Node.js is missing or the file is not where the command points.
+It should print one or two short rows, starting with the current folder. An error there means Node.js is missing or the file is not where the command points.
 
 ## Customize
 

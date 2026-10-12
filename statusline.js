@@ -1,5 +1,5 @@
 // Claude Code status line: folder, git branch, model + effort, context usage, plan usage limits.
-// Reads the session JSON on stdin and prints two rows: where Claude is and which model, then context and limits. Wired up in ~/.claude/settings.json.
+// Reads the session JSON on stdin and prints one row, or two when one would not fit the terminal: where Claude is and which model, then context and limits. Wired up in ~/.claude/settings.json.
 const fs = require('fs');
 const path = require('path');
 
@@ -7,6 +7,11 @@ const C = { dim: '\x1b[2m', reset: '\x1b[0m', cyan: '\x1b[36m', magenta: '\x1b[3
 const paint = (color, text) => `${color}${text}${C.reset}`;
 const byLevel = pct => (pct >= 80 ? C.red : pct >= 50 ? C.yellow : C.green);
 const SEP = paint(C.dim, ' │ ');
+// Columns kept free for the space Claude Code puts around the status line.
+const MARGIN = 2;
+
+// Visible width: drop the color codes; every symbol used here takes one column.
+const width = text => [...text.replace(/\x1b\[[0-9;]*m/g, '')].length;
 
 function folder(ws, cwd) {
   const dir = (ws && ws.current_dir) || cwd || process.cwd();
@@ -81,7 +86,10 @@ process.stdin.on('end', () => {
   const effort = s.effort && s.effort.level;
   const who = model + (effort ? paint(C.dim, ' · ' + effort) : '');
 
-  // Two rows: a long folder path would otherwise push the usage figures off a laptop-width terminal.
-  const rows = [[where, who], [context(s.context_window), limits(s.rate_limits)]];
-  process.stdout.write(rows.map(r => r.filter(Boolean).join(SEP)).join('\n'));
+  // One row when it fits, else two, so a long folder path never pushes the usage figures off screen.
+  // Claude Code captures the output, so the terminal width comes from COLUMNS. With no width known, two rows are the safe choice.
+  const rows = [[where, who], [context(s.context_window), limits(s.rate_limits)]].map(r => r.filter(Boolean).join(SEP));
+  const oneRow = rows.join(SEP);
+  const cols = Number(process.env.COLUMNS) || process.stdout.columns;
+  process.stdout.write(cols && width(oneRow) <= cols - MARGIN ? oneRow : rows.join('\n'));
 });
