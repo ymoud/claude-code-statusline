@@ -1,5 +1,5 @@
 // Claude Code status line: folder, git branch, model + effort, context usage, plan usage limits.
-// Reads the session JSON on stdin and prints one line. Wired up in ~/.claude/settings.json.
+// Reads the session JSON on stdin and prints two rows: where Claude is and which model, then context and limits. Wired up in ~/.claude/settings.json.
 const fs = require('fs');
 const path = require('path');
 
@@ -72,15 +72,16 @@ process.stdin.on('data', c => (raw += c));
 process.stdin.on('end', () => {
   let s = {};
   try { s = JSON.parse(raw); } catch {}
-
   const dir = (s.workspace && s.workspace.current_dir) || s.cwd || process.cwd();
   const branch = gitBranch(dir);
   const where = paint(C.cyan, folder(s.workspace, s.cwd)) + (branch ? ' ' + paint(C.magenta, '⎇ ' + branch) : '');
 
-  const model = (s.model && s.model.display_name) || '';
+  // The context window size already shows in the ctx part, so drop "(1M context)" from the name.
+  const model = ((s.model && s.model.display_name) || '').replace(/\s*\([^)]*context\)/i, '');
   const effort = s.effort && s.effort.level;
   const who = model + (effort ? paint(C.dim, ' · ' + effort) : '');
 
-  const line = [where, who, context(s.context_window), limits(s.rate_limits)].filter(Boolean).join(SEP);
-  process.stdout.write(line);
+  // Two rows: a long folder path would otherwise push the usage figures off a laptop-width terminal.
+  const rows = [[where, who], [context(s.context_window), limits(s.rate_limits)]];
+  process.stdout.write(rows.map(r => r.filter(Boolean).join(SEP)).join('\n'));
 });

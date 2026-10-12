@@ -3,7 +3,8 @@
 A status line for [Claude Code](https://claude.com/claude-code). It shows where Claude is working, which model it uses, how full the context window is, and how much of your plan's usage limits you have spent.
 
 ```
-my-app/web/…/components ⎇ main │ Opus 5.5 · high │ ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ limits 5h 16% · 7d 28%
+my-app/web/…/components ⎇ main │ Opus 5.5 · high
+ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ limits 5h 16% · 7d 28%
 ```
 
 ## What it shows
@@ -88,7 +89,7 @@ Run the script in a terminal (bash, zsh or PowerShell), with the path you used:
 echo {} | node $HOME/claude-code-statusline/statusline.js
 ```
 
-It should print a short line with the current folder. An error there means Node.js is missing or the file is not where the command points.
+It should print two short rows, the first with the current folder. An error there means Node.js is missing or the file is not where the command points.
 
 ## Customize
 
