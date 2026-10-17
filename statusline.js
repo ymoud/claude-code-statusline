@@ -5,6 +5,16 @@ const path = require('path');
 
 const C = { dim: '\x1b[2m', reset: '\x1b[0m', cyan: '\x1b[36m', magenta: '\x1b[35m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m' };
 const paint = (color, text) => `${color}${text}${C.reset}`;
+const rgb = (r, g, b) => `\x1b[38;2;${r};${g};${b}m`;
+
+// The colors Claude Code's own /effort menu gives each level, from its dark theme: warning, success, permission and auto-accept.
+// "max" is an animated rainbow there; a status line cannot animate, so it gets the rainbow's first colors, one per letter.
+const EFFORT = { low: rgb(255, 193, 7), medium: rgb(78, 186, 101), high: rgb(177, 185, 249), xhigh: rgb(208, 180, 255) };
+const RAINBOW = [rgb(235, 95, 87), rgb(250, 195, 95), rgb(145, 200, 130)];
+const effortText = level =>
+  level === 'max'
+    ? [...level].map((ch, i) => paint(RAINBOW[i % RAINBOW.length], ch)).join('')
+    : paint(EFFORT[level] || EFFORT.high, level);
 const byLevel = pct => (pct >= 80 ? C.red : pct >= 50 ? C.yellow : C.green);
 const SEP = paint(C.dim, ' │ ');
 // Columns kept free for the space Claude Code puts around the status line.
@@ -64,11 +74,25 @@ function context(cw) {
   return `ctx ${paint(byLevel(pct), `${bar} ${pct}%`)} ${paint(C.dim, `${kTokens(used)}${size}`)}`;
 }
 
+// Time until a window resets, from its Unix epoch seconds: the two largest units that are not zero ("2h 15m", "1d 5h", "40m"),
+// or days alone once more than two remain, when the hours no longer matter.
+function untilReset(at) {
+  if (!at) return null;
+  const mins = Math.ceil(Math.max(0, at - Date.now() / 1000) / 60);
+  const d = Math.floor(mins / 1440), h = Math.floor(mins / 60) % 24, m = mins % 60;
+  if (d > 2) return `${d}d`;
+  const units = [[d, 'd'], [h, 'h'], [m, 'm']].filter(([n]) => n);
+  return units.length ? units.slice(0, 2).map(([n, u]) => n + u).join(' ') : 'now';
+}
+
 function limits(rl) {
   if (!rl) return null;
   const parts = [['5h', rl.five_hour], ['7d', rl.seven_day]]
     .filter(([, v]) => v && v.used_percentage != null)
-    .map(([label, v]) => `${label} ${paint(byLevel(v.used_percentage), Math.round(v.used_percentage) + '%')}`);
+    .map(([label, v]) => {
+      const reset = untilReset(v.resets_at);
+      return `${label} ${paint(byLevel(v.used_percentage), Math.round(v.used_percentage) + '%')}` + (reset ? ' ' + paint(C.dim, `↻ ${reset}`) : '');
+    });
   return parts.length ? 'limits ' + parts.join(paint(C.dim, ' · ')) : null;
 }
 
@@ -84,7 +108,8 @@ process.stdin.on('end', () => {
   // The context window size already shows in the ctx part, so drop "(1M context)" from the name.
   const model = ((s.model && s.model.display_name) || '').replace(/\s*\([^)]*context\)/i, '');
   const effort = s.effort && s.effort.level;
-  const who = model + (effort ? paint(C.dim, ' · ' + effort) : '');
+  // The effort level sets how much the model reasons, so it keeps the color Claude Code gives it rather than a dim one.
+  const who = model + (effort ? paint(C.dim, ' · ') + effortText(effort) : '');
 
   // One row when it fits, else two, so a long folder path never pushes the usage figures off screen.
   // Claude Code captures the output, so the terminal width comes from COLUMNS. With no width known, two rows are the safe choice.

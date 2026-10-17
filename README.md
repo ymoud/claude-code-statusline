@@ -4,7 +4,7 @@ A status line for [Claude Code](https://claude.com/claude-code). It shows where 
 
 ```
 my-app/web/…/components ⎇ main │ Opus 5.5 · high
-ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ limits 5h 16% · 7d 28%
+ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ limits 5h 16% ↻ 2h 15m · 7d 28% ↻ 3d
 ```
 
 On a terminal wide enough to show everything, the two rows join into one.
@@ -15,9 +15,9 @@ On a terminal wide enough to show everything, the two rows join into one.
 | --- | --- |
 | `my-app/web/…/components` | Claude's current folder, starting from the folder you launched Claude Code in. It follows Claude when it changes directory. Paths deeper than three folders keep the first two and the last. |
 | `⎇ main` | The git branch of the repo that holds the current folder. Read straight from `.git/HEAD`, so no `git` process runs on every refresh. A detached HEAD shows the short commit hash. |
-| `Opus 5.5 · high` | The model and its reasoning effort. |
+| `Opus 5.5 · high` | The model and its reasoning effort. The effort takes the same color as in Claude Code's `/effort` menu: yellow for low, green for medium, blue for high, purple for xhigh and a rainbow for max. |
 | `ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M` | How much of the context window is used: bar, percentage, tokens used out of the window size. |
-| `limits 5h 16% · 7d 28%` | How much of your plan's 5-hour and 7-day usage limits you have used. Shown only when Claude Code reports them. |
+| `limits 5h 16% ↻ 2h 15m · 7d 28% ↻ 3d` | How much of your plan's 5-hour and 7-day usage limits you have used, and after ↻ how long until each window resets. The 5-hour window shows hours and minutes. The 7-day window shows days alone while more than two remain, then days and hours. Shown only when Claude Code reports them. |
 
 Percentages are green below 50%, yellow from 50% and red from 80%.
 
