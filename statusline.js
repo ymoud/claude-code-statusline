@@ -1,7 +1,21 @@
-// Claude Code status line: folder, git branch, model + effort, context usage, plan usage limits.
+// yline: a Claude Code status line with folder, git branch, model + effort, context usage, plan usage limits.
 // Reads the session JSON on stdin and prints one row, or two when one would not fit the terminal: where Claude is and which model, then context and limits. Wired up in ~/.claude/settings.json.
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+
+// Settings from ~/.claude/yline.json, read on every refresh so a change shows at once.
+// A missing file, broken JSON or a missing key falls back to the default: bars on, folder as a path.
+function settings() {
+  let user = {};
+  try { user = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude', 'yline.json'), 'utf8')) || {}; } catch {}
+  const bars = user.bars && typeof user.bars === 'object' ? user.bars : {};
+  return {
+    bars: { ctx: bars.ctx !== false, '5h': bars['5h'] !== false, '7d': bars['7d'] !== false },
+    folder: user.folder === 'name' ? 'name' : 'path',
+  };
+}
+const CONFIG = settings();
 
 const C = { dim: '\x1b[2m', reset: '\x1b[0m', cyan: '\x1b[36m', magenta: '\x1b[35m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m' };
 const paint = (color, text) => `${color}${text}${C.reset}`;
@@ -26,7 +40,7 @@ const width = text => [...text.replace(/\x1b\[[0-9;]*m/g, '')].length;
 function folder(ws, cwd) {
   const dir = (ws && ws.current_dir) || cwd || process.cwd();
   const root = ws && ws.project_dir;
-  if (root && dir !== root) {
+  if (CONFIG.folder === 'path' && root && dir !== root) {
     const rel = path.relative(root, dir);
     if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
       // Deep paths keep the launch folder, the project and the last folder: a/b/…/z.
@@ -59,19 +73,25 @@ function gitBranch(dir) {
   return null;
 }
 
+// Ten blocks, one per 10%.
+const bar = pct => {
+  const filled = Math.min(10, Math.max(0, Math.round(pct / 10)));
+  return '▰'.repeat(filled) + '▱'.repeat(10 - filled);
+};
+// A part's percentage, after its bar unless the settings turn that part's bar off.
+const meter = (part, pct) => (CONFIG.bars[part] ? `${bar(pct)} ${pct}%` : `${pct}%`);
+
 const kTokens = n => (n >= 1e6 ? +(n / 1e6).toFixed(1) + 'M' : Math.round(n / 1e3) + 'k');
 
 function context(cw) {
   if (!cw || cw.used_percentage == null) return paint(C.dim, 'ctx –');
   const pct = Math.round(cw.used_percentage);
-  const filled = Math.min(10, Math.round(pct / 10));
-  const bar = '▰'.repeat(filled) + '▱'.repeat(10 - filled);
   const u = cw.current_usage;
   const used = u
     ? (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0)
     : cw.total_input_tokens || 0;
   const size = cw.context_window_size ? `/${kTokens(cw.context_window_size)}` : '';
-  return `ctx ${paint(byLevel(pct), `${bar} ${pct}%`)} ${paint(C.dim, `${kTokens(used)}${size}`)}`;
+  return `ctx ${paint(byLevel(pct), meter('ctx', pct))} ${paint(C.dim, `${kTokens(used)}${size}`)}`;
 }
 
 // Time until a window resets, from its Unix epoch seconds: the two largest units that are not zero ("2h 15m", "1d 5h", "40m"),
@@ -86,14 +106,14 @@ function untilReset(at) {
 }
 
 function limits(rl) {
-  if (!rl) return null;
-  const parts = [['5h', rl.five_hour], ['7d', rl.seven_day]]
+  if (!rl) return [];
+  return [['5h', rl.five_hour], ['7d', rl.seven_day]]
     .filter(([, v]) => v && v.used_percentage != null)
     .map(([label, v]) => {
       const reset = untilReset(v.resets_at);
-      return `${label} ${paint(byLevel(v.used_percentage), Math.round(v.used_percentage) + '%')}` + (reset ? ' ' + paint(C.dim, `↻ ${reset}`) : '');
+      const pct = Math.round(v.used_percentage);
+      return `${label} ${paint(byLevel(v.used_percentage), meter(label, pct))}` + (reset ? ' ' + paint(C.dim, `↻ ${reset}`) : '');
     });
-  return parts.length ? 'limits ' + parts.join(paint(C.dim, ' · ')) : null;
 }
 
 let raw = '';
@@ -113,7 +133,7 @@ process.stdin.on('end', () => {
 
   // One row when it fits, else two, so a long folder path never pushes the usage figures off screen.
   // Claude Code captures the output, so the terminal width comes from COLUMNS. With no width known, two rows are the safe choice.
-  const rows = [[where, who], [context(s.context_window), limits(s.rate_limits)]].map(r => r.filter(Boolean).join(SEP));
+  const rows = [[where, who], [context(s.context_window), ...limits(s.rate_limits)]].map(r => r.filter(Boolean).join(SEP));
   const oneRow = rows.join(SEP);
   const cols = Number(process.env.COLUMNS) || process.stdout.columns;
   process.stdout.write(cols && width(oneRow) <= cols - MARGIN ? oneRow : rows.join('\n'));

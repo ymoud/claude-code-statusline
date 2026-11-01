@@ -1,10 +1,10 @@
-# claude-code-statusline
+# yline
 
-A status line for [Claude Code](https://claude.com/claude-code). It shows where Claude is working, which model it uses, how full the context window is, and how much of your plan's usage limits you have spent.
+yline is a status line for [Claude Code](https://claude.com/claude-code). It shows where Claude is working, which model it uses, how full the context window is, and how much of your plan's usage limits you have spent.
 
 ```
 my-app/web/…/components ⎇ main │ Opus 5.5 · high
-ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ limits 5h 16% ↻ 2h 15m · 7d 28% ↻ 3d
+ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M │ 5h ▰▰▱▱▱▱▱▱▱▱ 16% ↻ 2h 15m │ 7d ▰▰▰▱▱▱▱▱▱▱ 28% ↻ 3d
 ```
 
 On a terminal wide enough to show everything, the two rows join into one.
@@ -17,7 +17,7 @@ On a terminal wide enough to show everything, the two rows join into one.
 | `⎇ main` | The git branch of the repo that holds the current folder. Read straight from `.git/HEAD`, so no `git` process runs on every refresh. A detached HEAD shows the short commit hash. |
 | `Opus 5.5 · high` | The model and its reasoning effort. The effort takes the same color as in Claude Code's `/effort` menu: yellow for low, green for medium, blue for high, purple for xhigh and a rainbow for max. |
 | `ctx ▰▰▱▱▱▱▱▱▱▱ 16% 162k/1M` | How much of the context window is used: bar, percentage, tokens used out of the window size. |
-| `limits 5h 16% ↻ 2h 15m · 7d 28% ↻ 3d` | How much of your plan's 5-hour and 7-day usage limits you have used, and after ↻ how long until each window resets. The 5-hour window shows hours and minutes. The 7-day window shows days alone while more than two remain, then days and hours. Shown only when Claude Code reports them. |
+| `5h ▰▰▱▱▱▱▱▱▱▱ 16% ↻ 2h 15m` `7d ▰▰▰▱▱▱▱▱▱▱ 28% ↻ 3d` | How much of your plan's 5-hour and 7-day usage limits you have used, as a bar and a percentage, and after ↻ how long until each window resets. The 5-hour window shows hours and minutes. The 7-day window shows days alone while more than two remain, then days and hours. Shown only when Claude Code reports them. |
 
 Percentages are green below 50%, yellow from 50% and red from 80%.
 
@@ -95,6 +95,26 @@ echo {} | node $HOME/claude-code-statusline/statusline.js
 ```
 
 It should print one or two short rows, starting with the current folder. An error there means Node.js is missing or the file is not where the command points.
+
+## Settings
+
+yline works without any settings. To change what it shows, create `~/.claude/yline.json`:
+
+```json
+{
+  "bars": { "ctx": true, "5h": true, "7d": false },
+  "folder": "name"
+}
+```
+
+| Setting | Values | Default |
+| --- | --- | --- |
+| `bars` | One switch per part: `ctx`, `5h` and `7d`. `false` shows that part as a percentage alone, without its bar. | `true` for each part |
+| `folder` | `"path"` shows the folder from where you launched Claude Code, such as `my-app/web/…/components`. `"name"` shows only the current folder, such as `components`. | `"path"` |
+
+Any setting you leave out keeps its default. Changes show on the next refresh. If the file is not valid JSON, yline ignores it and uses the defaults.
+
+The file lives in `~/.claude`, outside the clone, so a `git pull` never touches it.
 
 ## Customize
 
